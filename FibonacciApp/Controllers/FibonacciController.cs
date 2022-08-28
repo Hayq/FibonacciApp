@@ -1,6 +1,7 @@
 ﻿
 using FibonacciDTO.Request;
 using FibonacciDTO.Response;
+using FibonacciService.FibonacciGenerator;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FibonacciApp.Controllers
@@ -8,9 +9,11 @@ namespace FibonacciApp.Controllers
     [Route("api/[controller]")]
     public class FibonacciController : ControllerBase
     {
-        public FibonacciController()
-        {
+        private readonly IFibNumGenerator _fibNumGenerator;
 
+        public FibonacciController(IFibNumGenerator fibNumGenerator)
+        {
+            _fibNumGenerator = fibNumGenerator;
         }
 
         [HttpPost("generate")]

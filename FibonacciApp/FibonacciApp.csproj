@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FibonacciDTO\FibonacciDTO.csproj" />
+    <ProjectReference Include="..\FibonacciService\FibonacciService.csproj" />
   </ItemGroup>
 
 </Project>
