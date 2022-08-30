@@ -19,6 +19,6 @@ namespace FibonacciDTO.Request
         [Description("Execution limitation in memory")]
         public uint? MemoryLimit { get; set; }
 
-        public bool SkipCach { get; set; }
+        public bool SkipCache { get; set; }
     }
 }

@@ -17,10 +17,10 @@ namespace FibonacciTest
 
         [TestCase(1u,   10u,      20u, 100u, true,  TestName = "10")]
         [TestCase(2u,   300u,     20u, 100u, true,  TestName = "100")]
-        [TestCase(300u, 3000u,    20u, 100u, true,  TestName = "1000")]
+        [TestCase(300u, 3000u,    1u, 100u, true,  TestName = "1000")]
         [TestCase(1u,   10000u,   20u, 100u, true,  TestName = "10000")]
-        [TestCase(1u,   100000u,  20u, 100u, true,  TestName = "100000")]
-        [TestCase(1u,   1000000u, 20u, 100u, true,  TestName = "1000000")]
+        [TestCase(1u,   100000u,  20000u, 100u, true,  TestName = "100000")]
+        [TestCase(1u,   1000000u, 20000u, 100u, true,  TestName = "1000000")]
         public async Task Test1(uint first, uint last, uint time, uint memory, bool skipCach = false)
         {
             var watch = new Stopwatch();
@@ -31,20 +31,21 @@ namespace FibonacciTest
                 LastIndex = last,
                 TimeLimit = time,
                 MemoryLimit = memory,
-                SkipCach = skipCach
+                SkipCache = skipCach
             };
             var sequence = await _fibNumGenerator.GenerateSubSequence(requestModel);
             watch.Stop();
 
-            ShowThreadPoolState(watch);
-            ShowSequence(sequence);
+            Console.WriteLine();
+            //ShowThreadPoolState(watch);
+            //ShowSequence(sequence);
             //TODO some assert
         }
 
         private static void ShowThreadPoolState(Stopwatch watch)
         {
             Console.WriteLine($"-->" +
-                $"\nElapsed Time {watch.Elapsed}" +
+                $"\nElapsed Time {watch.Elapsed.Milliseconds}" +
                 $"\nCompletedWorkItemCount {ThreadPool.CompletedWorkItemCount}" +
                 $"\nPendingWorkItemCount {ThreadPool.PendingWorkItemCount}" +
                 $"\nThreadCount {ThreadPool.ThreadCount}");

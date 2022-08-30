@@ -1,4 +1,6 @@
 ﻿using FibonacciDTO.Request;
+using FibonacciService.Guard;
+using System.Collections.Concurrent;
 
 namespace FibonacciService.FibonacciGenerator
 {
@@ -7,25 +9,17 @@ namespace FibonacciService.FibonacciGenerator
         private const int MinWorkerThreadCount = 2;//TODO configurable
 
         private bool _running = true;
-        private uint[] _sequence;
+        private ConcurrentDictionary<uint, uint>? _sequence;
         private FibonacciGenerateRequestModel _requestModel;
-        private CancellationTokenSource _cancelSource;
+        private readonly List<IGuard> _guards = new();
 
-
-#if DEBUG
-        private static Dictionary<int, int> threadIds = new Dictionary<int, int>();
-#endif
-
-        //TODO complete time out exception
-        ////throw new OperationCanceledException()
-
-        //TODO Memory reach exception
-        //var pr_memory = Process.GetCurrentProcess().PrivateMemorySize64;
+        private static Dictionary<int, int> threadIds = new Dictionary<int, int>();//TODO delete
 
         public async Task<IEnumerable<uint>> GenerateSubSequence(FibonacciGenerateRequestModel requestModel)
         {
             InitSequence(requestModel);
             InitThreadPool();
+            InitGuards(requestModel);
 
             ThreadPool.QueueUserWorkItem(GenerateNumber, new GenerationState(2, 0, 1));
 
@@ -38,22 +32,30 @@ namespace FibonacciService.FibonacciGenerator
             return _sequence;
         }
 
+        private void InitGuards(FibonacciGenerateRequestModel requestModel)
+        {
+            _guards.Add(new TimeGuard((int)requestModel.TimeLimit, () => _sequence));
+            _guards.Add(new ProcessGuard(() => _running));
+        }
+
         private void InitThreadPool()
         {
             ThreadPool.GetAvailableThreads(out int availableTh, out int availableCompTh);
             ThreadPool.GetMaxThreads(out int maxThreads, out int maxAvailableCompTh);
             ThreadPool.SetMinThreads(2, availableCompTh);
-            ThreadPool.SetMaxThreads(1024, maxAvailableCompTh);
+            ThreadPool.SetMaxThreads(2048, maxAvailableCompTh);
         }
 
         private void InitSequence(FibonacciGenerateRequestModel requestModel)
         {
             _running = true;
             _requestModel = requestModel;
-            _cancelSource = new CancellationTokenSource((int)requestModel.TimeLimit);
+
+            int numProcs = Environment.ProcessorCount;
+            int concurrencyLevel = numProcs * 2;
 
             var secuenceCapacity = (int)(_requestModel.LastIndex - _requestModel.FirstIndex + 1);
-            _sequence = new uint[secuenceCapacity];
+            _sequence = new ConcurrentDictionary<uint, uint>(concurrencyLevel, secuenceCapacity);
 
             if (_requestModel.FirstIndex == 1)
             {
@@ -67,8 +69,10 @@ namespace FibonacciService.FibonacciGenerator
 
         private void GenerateNumber(object stateObj)
         {
-            if (!_running)
+            var isInvalid = _guards.Any(g => !g.IsValid());
+            if (isInvalid)
             {
+                _running = false;
                 return;
             }
 
@@ -77,9 +81,7 @@ namespace FibonacciService.FibonacciGenerator
 
             _ = ThreadPool.QueueUserWorkItem(GenerateNumber, new GenerationState(state.index + 1, state.last, sequenceNumb));
 
-#if DEBUG
-            CalculateUniqueThreads();
-#endif
+            //CalculateUniqueThreads();//TODO delete
 
             if (state.index >= _requestModel.FirstIndex - 1 && state.index <= _requestModel.LastIndex - 1)
             {
@@ -94,7 +96,7 @@ namespace FibonacciService.FibonacciGenerator
             }
         }
 
-#if DEBUG
+        //TODO delete
         private static void CalculateUniqueThreads()
         {
             int currentManagedThreadId = Environment.CurrentManagedThreadId;
@@ -107,7 +109,6 @@ namespace FibonacciService.FibonacciGenerator
                 threadIds[currentManagedThreadId] = 0;
             }
         }
-#endif
 
         private record class GenerationState(uint index, uint prev, uint last);
     }
