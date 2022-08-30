@@ -6,18 +6,18 @@ namespace FibonacciDTO.Request
     public class FibonacciGenerateRequestModel
     {
         [Required]
-        public uint? FirstIndex { get; set; }
+        public int? FirstIndex { get; set; }
 
         [Required]
-        public uint? LastIndex { get; set; }
+        public int? LastIndex { get; set; }
 
         [Required]
-        [Description("Execution limitation in milliseconds")]
-        public uint? TimeLimit { get; set; }
+        [Description("Time execution limitation in milliseconds")]
+        public int? TimeLimit { get; set; }
 
         [Required]
-        [Description("Execution limitation in memory")]
-        public uint? MemoryLimit { get; set; }
+        [Description("Memory execution limitation in bytes")]
+        public long? MemoryLimit { get; set; }
 
         public bool SkipCache { get; set; }
     }

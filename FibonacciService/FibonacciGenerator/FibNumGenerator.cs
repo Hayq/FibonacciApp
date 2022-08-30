@@ -4,38 +4,38 @@ using System.Collections.Concurrent;
 
 namespace FibonacciService.FibonacciGenerator
 {
-    public class FibNumGenerator : IFibNumGenerator
+    public class FibNumGenerator : IFibNumGenerator, IDisposable
     {
-        private const int MinWorkerThreadCount = 2;//TODO configurable
-
-        private bool _running = true;
-        private ConcurrentDictionary<uint, uint>? _sequence;
+        private bool _canProcess = true;
+        private ConcurrentDictionary<int, ulong> _sequence;
         private FibonacciGenerateRequestModel _requestModel;
         private readonly List<IGuard> _guards = new();
 
-        private static Dictionary<int, int> threadIds = new Dictionary<int, int>();//TODO delete
-
-        public async Task<IEnumerable<uint>> GenerateSubSequence(FibonacciGenerateRequestModel requestModel)
+        public async Task<IEnumerable<ulong>> GenerateSubSequence(FibonacciGenerateRequestModel requestModel)
         {
             InitSequence(requestModel);
             InitThreadPool();
             InitGuards(requestModel);
 
-            ThreadPool.QueueUserWorkItem(GenerateNumber, new GenerationState(2, 0, 1));
+            _ = ThreadPool.QueueUserWorkItem(GenerateNumber, new GenerationState(2, 0, 1));
 
-            while (_running)
+            while (_canProcess)
             {
                 //Console.WriteLine($"-->IsRun {_running} ThreadCount:{ThreadPool.ThreadCount} PendingWorkItemCount:{ThreadPool.PendingWorkItemCount} CompletedWorkItemCount:{ThreadPool.CompletedWorkItemCount}");
                 await Task.CompletedTask;
             }
 
-            return _sequence;
+            var sequence = _sequence.OrderBy(s => s.Key)
+                                    .Select(s => s.Value);
+
+            return sequence;
         }
 
         private void InitGuards(FibonacciGenerateRequestModel requestModel)
         {
-            _guards.Add(new TimeGuard((int)requestModel.TimeLimit, () => _sequence));
-            _guards.Add(new ProcessGuard(() => _running));
+            _guards.Add(new TimeGuard(requestModel.TimeLimit.Value, () => _sequence.Count));
+            //_guards.Add(new MemoryGuard(requestModel.MemoryLimit.Value, () => _sequence.Count));
+            _guards.Add(new ProcessGuard(() => _canProcess));
         }
 
         private void InitThreadPool()
@@ -48,15 +48,20 @@ namespace FibonacciService.FibonacciGenerator
 
         private void InitSequence(FibonacciGenerateRequestModel requestModel)
         {
-            _running = true;
+            _canProcess = true;
             _requestModel = requestModel;
 
-            int numProcs = Environment.ProcessorCount;
-            int concurrencyLevel = numProcs * 2;
+            var numProcs = Environment.ProcessorCount;
+            var concurrencyLevel = numProcs * 2;
 
             var secuenceCapacity = (int)(_requestModel.LastIndex - _requestModel.FirstIndex + 1);
-            _sequence = new ConcurrentDictionary<uint, uint>(concurrencyLevel, secuenceCapacity);
+            _sequence = new ConcurrentDictionary<int, ulong>(concurrencyLevel, secuenceCapacity);
 
+            TryInitSequenceFirstItems();
+        }
+
+        private void TryInitSequenceFirstItems()
+        {
             if (_requestModel.FirstIndex == 1)
             {
                 _sequence[0] = 0;
@@ -72,44 +77,35 @@ namespace FibonacciService.FibonacciGenerator
             var isInvalid = _guards.Any(g => !g.IsValid());
             if (isInvalid)
             {
-                _running = false;
+                _canProcess = false;
                 return;
             }
 
             var state = (GenerationState)stateObj;
-            var sequenceNumb = state.prev + state.last;
+            var sequenceNumb = state.Prev + state.Last;
 
-            _ = ThreadPool.QueueUserWorkItem(GenerateNumber, new GenerationState(state.index + 1, state.last, sequenceNumb));
+            _ = ThreadPool.QueueUserWorkItem(GenerateNumber, new GenerationState(state.Index + 1, state.Last, sequenceNumb));
 
-            //CalculateUniqueThreads();//TODO delete
-
-            if (state.index >= _requestModel.FirstIndex - 1 && state.index <= _requestModel.LastIndex - 1)
+            if (state.Index >= _requestModel.FirstIndex - 1 && state.Index <= _requestModel.LastIndex - 1)
             {
-                var indexInSequence = (int)(state.index - _requestModel.FirstIndex) + 1;
+                var indexInSequence = state.Index - _requestModel.FirstIndex.Value + 1;
                 _sequence[indexInSequence] = sequenceNumb;
-                //Console.WriteLine($"--> T-ID:{Thread.CurrentThread.ManagedThreadId} Mum:{sequenceNumb} Index:{state.index} SeqIndex {indexInSequence}");
             }
-            else if (state.index >= _requestModel.LastIndex)
+            else if (state.Index >= _requestModel.LastIndex)
             {
-                _running = false;
-                //Console.WriteLine($"--> TID:{Thread.CurrentThread.ManagedThreadId} Mum:{sequenceNumb} Index:{state.index}");
+                _canProcess = false;
             }
         }
 
-        //TODO delete
-        private static void CalculateUniqueThreads()
+        public void Dispose()
         {
-            int currentManagedThreadId = Environment.CurrentManagedThreadId;
-            if (threadIds.TryGetValue(currentManagedThreadId, out var entryCount))
+            var guards = _guards.OfType<IDisposable>();
+            foreach(var guard in guards)
             {
-                threadIds[currentManagedThreadId] = ++entryCount;
-            }
-            else
-            {
-                threadIds[currentManagedThreadId] = 0;
+                guard.Dispose();
             }
         }
 
-        private record class GenerationState(uint index, uint prev, uint last);
+        private record class GenerationState(int Index, ulong Prev, ulong Last);
     }
 }

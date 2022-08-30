@@ -7,24 +7,21 @@ namespace FibonacciTest
 {
     public class FibonacciSequenceTest
     {
+        readonly Stopwatch _watch = new();
         private IFibNumGenerator _fibNumGenerator;
 
-        [OneTimeSetUp]
+        [SetUp]
         public void Setup()
         {
             _fibNumGenerator = new FibNumGenerator();
         }
 
-        [TestCase(1u,   10u,      20u, 100u, true,  TestName = "10")]
-        [TestCase(2u,   300u,     20u, 100u, true,  TestName = "100")]
-        [TestCase(300u, 3000u,    1u, 100u, true,  TestName = "1000")]
-        [TestCase(1u,   10000u,   20u, 100u, true,  TestName = "10000")]
-        [TestCase(1u,   100000u,  20000u, 100u, true,  TestName = "100000")]
-        [TestCase(1u,   1000000u, 20000u, 100u, true,  TestName = "1000000")]
-        public async Task Test1(uint first, uint last, uint time, uint memory, bool skipCach = false)
+        [TestCase(1,   10,      1000, 100000L, true, TestName = "success 10")]
+        [TestCase(2,   300,     1000, 100000L, true, TestName = "success 100")]
+        [TestCase(300, 3000,    1500, 100000L, true, TestName = "success 1000")]
+        [TestCase(1,   100000, 2000, 100000L, true, TestName = "success 1000000")]
+        public async Task Test1(int first, int last, int time, long memory, bool skipCach = false)
         {
-            var watch = new Stopwatch();
-            watch.Start();
             var requestModel = new FibonacciGenerateRequestModel
             {
                 FirstIndex = first,
@@ -33,13 +30,25 @@ namespace FibonacciTest
                 MemoryLimit = memory,
                 SkipCache = skipCach
             };
-            var sequence = await _fibNumGenerator.GenerateSubSequence(requestModel);
-            watch.Stop();
 
-            Console.WriteLine();
+            _watch.Restart();
+            _watch.Start();
+            var sequence = await _fibNumGenerator.GenerateSubSequence(requestModel);
+            _watch.Stop();
+
+            int expected = last - first + 1;
+            int actual = sequence.Count();
+            Assert.AreEqual(expected, actual);
+
+            //Console.WriteLine();
             //ShowThreadPoolState(watch);
             //ShowSequence(sequence);
-            //TODO some assert
+        }
+
+        [TearDown]
+        public void OnTestDown()
+        {
+            ShowThreadPoolState(_watch);
         }
 
         private static void ShowThreadPoolState(Stopwatch watch)

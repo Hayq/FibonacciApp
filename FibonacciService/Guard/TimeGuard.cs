@@ -2,15 +2,15 @@
 
 namespace FibonacciService.Guard
 {
-    public class TimeGuard : IGuard
+    public class TimeGuard : IGuard, IGuardDetail, IDisposable
     {
-        private Func<uint[]> _getSequence;
+        private Func<int> _getSequenceCount;
         private CancellationTokenSource _cancelSource;
         private Stopwatch _stopwatch = new Stopwatch();
 
-        public TimeGuard(int millisecDelay, Func<uint[]> getSecuence)
+        public TimeGuard(int millisecDelay, Func<int> getSecuence)
         {
-            _getSequence = getSecuence;
+            _getSequenceCount = getSecuence;
             _cancelSource = new CancellationTokenSource(millisecDelay);
             _stopwatch.Start();
         }
@@ -20,26 +20,32 @@ namespace FibonacciService.Guard
             if (_cancelSource.IsCancellationRequested)
             {
                 _stopwatch.Stop();
-                if (_getSequence().Length > 0)
+                if (_getSequenceCount() > 0)
                 {
-                    throw new NotImplementedException();
-                    Console.WriteLine($"--> TIME:{_stopwatch.ElapsedMilliseconds}");
+                    Console.WriteLine($"--> TIME OUT:{_stopwatch.ElapsedMilliseconds}");
                     return false;
                 }
                 else
                 {
-                    Console.WriteLine($"--~> TIME:{_stopwatch.ElapsedMilliseconds}");
+                    Console.WriteLine($"--> TIME OUT EX:{_stopwatch.ElapsedMilliseconds}");
                     throw new TimeoutException();
                 }
             }
 
             return true;
         }
-    }
 
-    public class TimeGuardInit : IGetSequence, IGuardInit
-    {
-        public int MillisecDelay { get; set; }
-        public Func<uint[]> GetSequence { get; set; }
+        public Dictionary<string, object> GetDetails()
+        {
+            return new Dictionary<string, object>
+            {
+                { "TimeElapsed", _stopwatch.Elapsed }
+            };
+        }
+
+        public void Dispose()
+        {
+            _cancelSource.Dispose();
+        }
     }
 }

@@ -4,6 +4,6 @@ namespace FibonacciService.FibonacciGenerator
 {
     public interface IFibNumGenerator
     {
-        Task<IEnumerable<uint>> GenerateSubSequence(FibonacciGenerateRequestModel requestModel);
+        Task<IEnumerable<ulong>> GenerateSubSequence(FibonacciGenerateRequestModel requestModel);
     }
 }
