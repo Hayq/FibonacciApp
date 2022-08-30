@@ -16,13 +16,11 @@ namespace FibonacciApp.Controllers
             _fibNumGenerator = fibNumGenerator;
         }
 
-        [ResponseCache()]
+        //[ResponseCache()]
         [HttpPost("generate")]
         public async Task<FibonacciSequenceResponseModel> GenerateSequance(FibonacciGenerateRequestModel generateRequestModel)
         {
-            await Task.CompletedTask;
-            // todo
-            return new FibonacciSequenceResponseModel();
+            return await _fibNumGenerator.GenerateSubSequence(generateRequestModel);
         }
     }
 }

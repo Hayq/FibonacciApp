@@ -2,50 +2,37 @@
 
 namespace FibonacciService.Guard
 {
-    public class TimeGuard : IGuard, IGuardDetail, IDisposable
+    public class TimeGuard : IGuard, IGuardDetail
     {
-        private Func<int> _getSequenceCount;
-        private CancellationTokenSource _cancelSource;
-        private Stopwatch _stopwatch = new Stopwatch();
+        private readonly long _interval;
+        private Stopwatch _stopwatch = new();
+        private KeyValuePair<string, object> _guardDetails;
 
-        public TimeGuard(int millisecDelay, Func<int> getSecuence)
+        public TimeGuard(long interval)
         {
-            _getSequenceCount = getSecuence;
-            _cancelSource = new CancellationTokenSource(millisecDelay);
+            _interval = interval;
             _stopwatch.Start();
         }
 
         public bool IsValid()
         {
-            if (_cancelSource.IsCancellationRequested)
+            if (_stopwatch.ElapsedMilliseconds > _interval)
             {
                 _stopwatch.Stop();
-                if (_getSequenceCount() > 0)
-                {
-                    Console.WriteLine($"--> TIME OUT:{_stopwatch.ElapsedMilliseconds}");
-                    return false;
-                }
-                else
-                {
-                    Console.WriteLine($"--> TIME OUT EX:{_stopwatch.ElapsedMilliseconds}");
-                    throw new TimeoutException();
-                }
+                return false;
             }
 
             return true;
         }
 
-        public Dictionary<string, object> GetDetails()
+        public KeyValuePair<string, object> GetDetails()
         {
-            return new Dictionary<string, object>
-            {
-                { "TimeElapsed", _stopwatch.Elapsed }
-            };
+            return _guardDetails;
         }
 
-        public void Dispose()
+        public void FinalizeDetails()
         {
-            _cancelSource.Dispose();
+            _guardDetails = new KeyValuePair<string, object>("TimeElapsedMilliseconds", _stopwatch.ElapsedMilliseconds);
         }
     }
 }

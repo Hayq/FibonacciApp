@@ -1,9 +1,10 @@
 ﻿using FibonacciDTO.Request;
+using FibonacciDTO.Response;
 
 namespace FibonacciService.FibonacciGenerator
 {
     public interface IFibNumGenerator
     {
-        Task<IEnumerable<ulong>> GenerateSubSequence(FibonacciGenerateRequestModel requestModel);
+        Task<FibonacciSequenceResponseModel> GenerateSubSequence(FibonacciGenerateRequestModel requestModel);
     }
 }

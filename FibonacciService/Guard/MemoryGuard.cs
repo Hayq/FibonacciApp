@@ -4,41 +4,34 @@ namespace FibonacciService.Guard
 {
     public class MemoryGuard : IGuard, IGuardDetail
     {
-        private Func<int> _getSequenceCount;
         private long _memoryLimit;
+        private KeyValuePair<string, object> _guardDetails;
 
-        public MemoryGuard(long memoryLimit, Func<int> sequenceCount)
+        public MemoryGuard(long memoryLimit)
         {
-            _getSequenceCount = sequenceCount;
             _memoryLimit = memoryLimit;
         }
 
         public bool IsValid()
         {
             var prMemory = Process.GetCurrentProcess().PrivateMemorySize64;
-            if (prMemory >= _memoryLimit)
+            if (prMemory > _memoryLimit)
             {
-                Console.WriteLine($"-->MemoryReached:{_memoryLimit} bytes");
-
-                if (_getSequenceCount() > 0)
-                {
-                    return false;
-                }
-                else
-                {
-                    throw new OutOfMemoryException();
-                }
+                FinalizeDetails();
+                return false;
             }
 
             return true;
         }
 
-        public Dictionary<string, object> GetDetails()
+        public KeyValuePair<string, object> GetDetails()
         {
-            return new Dictionary<string, object>
-            {
-                { "ProcessMemory_bytes", Process.GetCurrentProcess().PrivateMemorySize64 }
-            };
+            return _guardDetails;
+        }
+
+        public void FinalizeDetails()
+        {
+            _guardDetails = new KeyValuePair<string, object>("ProcessMemoryBytes", Process.GetCurrentProcess().PrivateMemorySize64);
         }
     }
 }
