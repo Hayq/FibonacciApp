@@ -1,4 +1,4 @@
-﻿using FibonacciDTO.AppException;
+﻿using FibonacciDTO.AppExceptions;
 using FibonacciDTO.Request;
 using FibonacciDTO.Response;
 using FibonacciService.Guard;
@@ -32,7 +32,7 @@ namespace FibonacciService.FibonacciGenerator
         private void InitGuards(FibonacciGenerateRequestModel requestModel)
         {
             _guards.Add(new TimeGuard(requestModel.TimeLimit.Value));
-            //_guards.Add(new MemoryGuard(requestModel.MemoryLimit.Value));
+            _guards.Add(new MemoryGuard(requestModel.MemoryLimit.Value));
             _guards.Add(new ProcessGuard(() => _canProcess));
         }
 
@@ -105,7 +105,8 @@ namespace FibonacciService.FibonacciGenerator
 
             if (_sequence.Count > 0)
             {
-                return new FibonacciSequenceResponseModel(_sequence.Values, guardsDetails);
+                var sequence = _sequence.Values.OrderBy(s => s);
+                return new FibonacciSequenceResponseModel(sequence, guardsDetails);
             }
             else
             {

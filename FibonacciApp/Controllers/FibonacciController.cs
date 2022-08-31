@@ -16,7 +16,7 @@ namespace FibonacciApp.Controllers
             _fibNumGenerator = fibNumGenerator;
         }
 
-        //[ResponseCache()]
+        [ResponseCache(CacheProfileName = "Default")]
         [HttpPost("generate")]
         public async Task<FibonacciSequenceResponseModel> GenerateSequance(FibonacciGenerateRequestModel generateRequestModel)
         {

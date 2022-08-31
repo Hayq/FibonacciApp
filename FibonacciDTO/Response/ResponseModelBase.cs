@@ -4,8 +4,8 @@ namespace FibonacciDTO.Response
 {
     public class ResponseModelBase
     {
-        public int StatusCode { get; set; } = (int)HttpStatusCode.OK;
-        public object Error { get; set; }
+        public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
+        public object ErrorMessage { get; set; }
         public object Data { get; set; }
     }
 }

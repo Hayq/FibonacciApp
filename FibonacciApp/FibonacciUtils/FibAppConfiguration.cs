@@ -1,17 +1,20 @@
-﻿using FibonacciService.FibonacciGenerator;
+﻿using FibonacciApp.GlobalExceptionHandling;
+using FibonacciService.FibonacciGenerator;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FibonacciApp.FibonacciUtils
 {
     public static class FibAppConfiguration
     {
-        public static void SetupFibonacciServices(this IServiceCollection appServices)
+        public static void SetupFibonacciServices(this IServiceCollection appServices, WebApplicationBuilder builder)
         {
             appServices.AddTransient<IFibNumGenerator, FibNumGenerator>();
             appServices.AddControllers(options =>
             {
-                //options.Filters.Add<HttpResponseExceptionFilter>();//TODO:
+                options.CacheProfiles.SetupCacheProfiles(builder);
             });
 
+            appServices.AddResponseCaching();
             appServices.AddEndpointsApiExplorer();
             appServices.AddSwaggerGen();
         }
@@ -22,6 +25,28 @@ namespace FibonacciApp.FibonacciUtils
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+            }
+
+            app.UseMiddleware(typeof(GlobalErrorHandlingMiddleware));
+            app.UseCors();
+            app.UseAuthorization();
+
+            app.MapControllers();
+        }
+
+        private static void SetupCacheProfiles(
+            this IDictionary<string, CacheProfile> cacheProfiles,
+            WebApplicationBuilder builder)
+        {
+            var cacheProfileConfigs = builder.Configuration
+                .GetSection("CacheProfiles")
+                .GetChildren();
+
+            foreach (var cacheProfile in cacheProfileConfigs)
+            {
+                cacheProfiles.Add(
+                    cacheProfile.Key,
+                    cacheProfile.Get<CacheProfile>());
             }
         }
     }

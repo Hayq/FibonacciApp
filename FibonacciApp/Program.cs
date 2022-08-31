@@ -8,15 +8,10 @@ namespace FibonacciApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            builder.Services.SetupFibonacciServices();
+            builder.Services.SetupFibonacciServices(builder);
 
             var app = builder.Build();
             app.SetupFibonacciWebApp();
-
-            app.UseCors();
-            app.UseAuthorization();
-
-            app.MapControllers();
 
             app.Run();
         }

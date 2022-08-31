@@ -1,5 +1,6 @@
-using FibonacciDTO.AppException;
+using FibonacciDTO.AppExceptions;
 using FibonacciDTO.Request;
+using FibonacciDTO.Response;
 using FibonacciService.FibonacciGenerator;
 using NUnit.Framework;
 using System.Diagnostics;
@@ -17,9 +18,9 @@ namespace FibonacciTest
             _fibNumGenerator = new FibNumGenerator();
         }
 
-        [TestCase(1,   10,      1000, 100000L, false, TestName = "success 10")]
-        [TestCase(2,   300,     1000, 100000L, false, TestName = "success 298")]
-        [TestCase(300, 3000,    1000, 100000L, false, TestName = "success 2701")]
+        [TestCase(1, 10, 1000, 100000000L, false, TestName = "success 10 elements")]
+        [TestCase(2, 300, 1000, 100000000L, false, TestName = "success 298 elements")]
+        [TestCase(300, 3000, 1000, 100000000L, false, TestName = "success 2701 elements")]
         public async Task FibonacciSequenceGeneration_CheckValidCountOfGeneratedSubSequences(int first, int last, long time, long memory, bool skipCach = false)
         {
             var requestModel = new FibonacciGenerateRequestModel
@@ -36,18 +37,17 @@ namespace FibonacciTest
             var response = await _fibNumGenerator.GenerateSubSequence(requestModel);
             _watch.Stop();
 
-            var sequence = (IEnumerable<ulong>)response.Data;
+            var sequence = response.Data as IEnumerable<ulong>;
             int expected = last - first + 1;
             int actual = sequence.Count();
-            Assert.AreEqual(expected, actual);
 
-            //Console.WriteLine();
-            //ShowThreadPoolState(watch);
-            //ShowSequence(sequence);
+            Assert.IsNotNull(sequence);
+            Assert.IsInstanceOf(typeof(FibonacciSequenceResponseModel), response);
+            Assert.That(actual, Is.EqualTo(expected));
         }
 
-        [TestCase(300, 3000, 10, 100000L, false, TestName = "first 300")]
-        public void FibonacciSequenceGeneration_TimeLimitationException(int first, int last, int time, long memory, bool skipCach = false)
+        [TestCase(300, 3000, 10, 100000000L, false, TestName = "time limit check")]
+        public void FibonacciSequenceGeneration_TimeLimitationException_ShouldThrow(int first, int last, int time, long memory, bool skipCach = false)
         {
             var requestModel = new FibonacciGenerateRequestModel
             {
@@ -62,7 +62,28 @@ namespace FibonacciTest
             _watch.Start();
 
             var exception = Assert.ThrowsAsync(
-                typeof(AppException), 
+                typeof(AppException),
+                async () => await _fibNumGenerator.GenerateSubSequence(requestModel));
+            _watch.Stop();
+        }
+
+        [TestCase(200, 1000, 1000, 100000L, false, TestName = "memory limit check")]
+        public void FibonacciSequenceGeneration_MemoryLimitationException_ShouldThrow(int first, int last, int time, long memory, bool skipCach = false)
+        {
+            var requestModel = new FibonacciGenerateRequestModel
+            {
+                FirstIndex = first,
+                LastIndex = last,
+                TimeLimit = time,
+                MemoryLimit = memory,
+                SkipCache = skipCach
+            };
+
+            _watch.Restart();
+            _watch.Start();
+
+            var exception = Assert.ThrowsAsync(
+                typeof(AppException),
                 async () => await _fibNumGenerator.GenerateSubSequence(requestModel));
             _watch.Stop();
         }

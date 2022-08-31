@@ -5,19 +5,20 @@ namespace FibonacciService.Guard
     public class MemoryGuard : IGuard, IGuardDetail
     {
         private long _memoryLimit;
+        private Process _process;
         private KeyValuePair<string, object> _guardDetails;
 
         public MemoryGuard(long memoryLimit)
         {
             _memoryLimit = memoryLimit;
+            _process = Process.GetCurrentProcess();
         }
 
         public bool IsValid()
         {
-            var prMemory = Process.GetCurrentProcess().PrivateMemorySize64;
+            var prMemory = _process.PrivateMemorySize64;
             if (prMemory > _memoryLimit)
             {
-                FinalizeDetails();
                 return false;
             }
 
@@ -31,7 +32,7 @@ namespace FibonacciService.Guard
 
         public void FinalizeDetails()
         {
-            _guardDetails = new KeyValuePair<string, object>("ProcessMemoryBytes", Process.GetCurrentProcess().PrivateMemorySize64);
+            _guardDetails = new KeyValuePair<string, object>("ProcessMemoryBytes", _process.PrivateMemorySize64);
         }
     }
 }

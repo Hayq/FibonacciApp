@@ -18,7 +18,6 @@ namespace FibonacciService.Guard
         {
             if (_stopwatch.ElapsedMilliseconds > _interval)
             {
-                _stopwatch.Stop();
                 return false;
             }
 
@@ -32,6 +31,7 @@ namespace FibonacciService.Guard
 
         public void FinalizeDetails()
         {
+            _stopwatch.Stop();
             _guardDetails = new KeyValuePair<string, object>("TimeElapsedMilliseconds", _stopwatch.ElapsedMilliseconds);
         }
     }
